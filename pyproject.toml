@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "tokopaedi"
+version = "0.1.1"
+description = "Tokopedia scraper"
+authors = ["Hilmi Azizi <root@hilmiazizi.com>"]
+packages = [{ include = "tokopaedi", from = "src" }]
+readme = "README.md"
+[tool.poetry.dependencies]
+python = "^3.10"
+curl-cffi = "^0.11.4"
+
+[build-system]
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"
