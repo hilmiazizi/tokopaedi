@@ -1,8 +1,9 @@
 
-
 # Tokopaedi
 
 Tokopaedi is a Python library for extracting e-commerce data from Tokopedia, including product search, detailed product information, and product reviews.
+
+![Tokopaedi Runtime](image/runtime.png)
 
 ## Features
 
@@ -202,7 +203,7 @@ print(df[[
     "shop.name"
 ]].head())
 ```
-
+![Tokopaedi Runtime](image/notebook.png)
 ## 📄 License
 
 This project is licensed under the MIT License.
