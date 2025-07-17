@@ -226,4 +226,4 @@ You are free to use, modify, and distribute this project with attribution. See t
 
 
 <!-- Google Search Console Verification -->
-<meta name="google-site-verification" content="Apib7-x98H0j5cPqHWwSMm6dNU4GmODRoqxLiDzdx9I" />
+<meta name="google-site-verification" content="u-6uTnHNv4_GEBxXH1cdpjXFVqi7FfHEbfv12me-OUk" />
