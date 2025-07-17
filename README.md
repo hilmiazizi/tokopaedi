@@ -223,3 +223,7 @@ Tokopaedi was created by **Hilmi Azizi**. For inquiries, feedback, or collaborat
 This project is licensed under the MIT License.
 
 You are free to use, modify, and distribute this project with attribution. See the [LICENSE](https://github.com/hilmiazizi/tokopaedi/blob/main/LICENSE) file for more details.
+
+
+<!-- Google Search Console Verification -->
+<meta name="google-site-verification" content="your-verification-code" />
