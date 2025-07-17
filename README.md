@@ -9,18 +9,14 @@ Tokopaedi is a powerful Python library designed for scraping e-commerce data fro
 ![Tokopaedi Runtime](image/runtime.png)
 
 ## Features
-
-
 - **Product Search**: Search Tokopedia products by keyword with customizable filters (price, rating, condition, etc.).
 - **Detailed Product Data**: Retrieve rich product details, including variants, pricing, stock, and media.
 - **Customer Reviews**: Scrape product reviews with ratings, timestamps, and more.
 - **Serializable Results**: Dataclass-based results with `.json()` for easy export to JSON or pandas DataFrames.
 - **SearchResults Container**: Iterable and serializable container for streamlined data handling.
 
----
 
 ## Installation
-----------
 Tokopaedi is available on PyPi: [https://pypi.org/project/tokopaedi/](https://pypi.org/project/tokopaedi/)
 
 Install Tokopaedi via pip:
@@ -28,7 +24,6 @@ Install Tokopaedi via pip:
 ```bash
 pip install tokopaedi
 ```
-
 
 ##  Quick Start
 ```python
@@ -56,7 +51,6 @@ with open('log.json','w') as f:
 print(json.dumps(results.json(), indent=4))
 ```
 
-----------
 ## 📘 API Overview
 
 ### 🔍 `search(keyword: str, max_result: int = 100, filters: Optional[SearchFilters] = None, debug: bool = False) -> SearchResults`
@@ -224,7 +218,6 @@ print(df[[
 
 Tokopaedi was created by **Hilmi Azizi**. For inquiries, feedback, or collaboration, contact me at [root@hilmiazizi.com](mailto:root@hilmiazizi.com). You can also reach out via [GitHub Issues](https://github.com/hilmiazizi/tokopaedi/issues) for bug reports or feature suggestions.
 
----
 ## 📄 License
 
 This project is licensed under the MIT License.
