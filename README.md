@@ -1,23 +1,32 @@
+# Tokopaedi - Python Library for Tokopedia E-Commerce Data Extraction
+![PyPI](https://img.shields.io/pypi/v/tokopaedi) [![PyPI Downloads](https://static.pepy.tech/badge/tokopaedi)](https://pepy.tech/projects/tokopaedi) ![GitHub Repo stars](https://img.shields.io/github/stars/hilmiazizi/tokopaedi?style=social) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/hilmiazizi/tokopaedi/blob/main/LICENSE) ![GitHub forks](https://img.shields.io/github/forks/hilmiazizi/tokopaedi?style=social)
 
-# Tokopaedi
+**Extract product data, reviews, and search results from Tokopedia with ease.**
 
-Tokopaedi is a Python library for extracting e-commerce data from Tokopedia, including product search, detailed product information, and product reviews.
+Tokopaedi is a powerful Python library designed for scraping e-commerce data from Tokopedia, including product searches, detailed product information, and customer reviews. Ideal for developers, data analysts, and businesses looking to analyze Tokopedia's marketplace.
+
 
 ![Tokopaedi Runtime](image/runtime.png)
 
 ## Features
 
-- `search()` – search products by keyword with support for filters
-- `get_product()` – fetch rich product details including variants and media
-- `get_reviews()` – retrieve product reviews with ratings and timestamps
-- Dataclass-based results with `.json()` method for easy conversion
-- `SearchResults` container for iterable and serializable product search results
+
+- **Product Search**: Search Tokopedia products by keyword with customizable filters (price, rating, condition, etc.).
+- **Detailed Product Data**: Retrieve rich product details, including variants, pricing, stock, and media.
+- **Customer Reviews**: Scrape product reviews with ratings, timestamps, and more.
+- **Serializable Results**: Dataclass-based results with `.json()` for easy export to JSON or pandas DataFrames.
+- **SearchResults Container**: Iterable and serializable container for streamlined data handling.
+
+---
 
 ## Installation
 
-``pip install tokopaedi``
+Install Tokopaedi via pip:
 
-  ##  Quick Start
+```bash
+pip install tokopaedi
+
+##  Quick Start
 
 ```python
 from tokopaedi import search, SearchFilters, get_product, get_reviews, combine_data
@@ -69,41 +78,42 @@ Search for products from Tokopedia.
 
 ----------
 
-### 📦 `get_product(product_id: Union[int, str], debug: bool = False) -> ProductData`
+### 📦 `get_product(product_id: Optional[Union[int, str]] = None, url: Optional[str] = None, debug: bool = False) -> ProductData`
 
-Fetch detailed information for a given product.
+Fetch detailed information for a given Tokopedia product.
 
 **Parameters:**
 
--   `product_id`: ID of a product returned from `search()`.
--   `debug`: Show debug message if True
-    
+- `product_id`: (Optional) The product ID returned from `search()`. If provided, this will take precedence over `url`.
+- `url`: (Optional) The full product URL. Used only if `product_id` is not provided.
+- `debug`: If `True`, prints debug output for troubleshooting.
+
+> ⚠️ Either `product_id` or `url` must be provided. If both are given, `product_id` is used and `url` is ignored.
 
 **Returns:**
 
--   A `ProductData` instance containing detailed information (price, variants, media, etc.).
-    
--   Supports `.json()` for serialization.
-    
+- A `ProductData` instance containing detailed information such as product name, pricing, variants, media, stock, rating, etc.
+- Supports `.json()` for easy serialization (e.g., to use with `pandas` or export as `.json`).
 
 ----------
 
-### 🗣️ `get_reviews(product_id: Union[int, str], max_count: int = 20, debug: bool = False) -> List[ProductReview]`
+### 🗣️ `get_reviews(product_id: Optional[Union[int, str]] = None, url: Optional[str] = None, max_count: int = 20, debug: bool = False) -> List[ProductReview]`
 
 Scrape customer reviews for a given product.
 
 **Parameters:**
 
--   `product_id`: Product ID to fetch reviews for.
-    
--   `max_count`: Max number of reviews to fetch (default: 20).
--   `debug`: Show debug message if True
-    
+- `product_id`: (Optional) The product ID to fetch reviews for. Takes precedence over `url` if both are provided.
+- `url`: (Optional) Full product URL. Used only if `product_id` is not provided.
+- `max_count`: Maximum number of reviews to fetch (default: 20).
+- `debug`: Show debug messages if `True`.
+
+> ⚠️ Either `product_id` or `url` must be provided.
 
 **Returns:**
 
--   A list of `ProductReview` objects, each of which has a `.json()` method.
-    
+- A list of `ProductReview` objects.
+- Each object supports `.json()` for serialization (e.g., for use with `pandas` or JSON export).
 
 ----------
 
@@ -203,9 +213,17 @@ print(df[[
     "shop.name"
 ]].head())
 ```
+
 ![Tokopaedi Runtime](image/notebook.png)
+
+
+## Author
+
+Tokopaedi was created by **Hilmi Azizi**. For inquiries, feedback, or collaboration, contact me at [root@hilmiazizi.com](mailto:root@hilmiazizi.com). You can also reach out via [GitHub Issues](https://github.com/hilmiazizi/tokopaedi/issues) for bug reports or feature suggestions.
+
+---
 ## 📄 License
 
 This project is licensed under the MIT License.
 
-You are free to use, modify, and distribute this project with attribution. See the `LICENSE` file for more details.
+You are free to use, modify, and distribute this project with attribution. See the [LICENSE](https://github.com/hilmiazizi/tokopaedi/blob/main/LICENSE) file for more details.

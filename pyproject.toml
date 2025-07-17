@@ -1,12 +1,34 @@
 [tool.poetry]
 name = "tokopaedi"
-version = "0.1.1"
-description = "Tokopedia scraper"
+version = "0.1.2"
+description = "A Python scraper for Tokopedia that supports filtered product search, detailed product information, and customer reviews with accurate mobile pricing and Jupyter Notebook compatibility."
 authors = ["Hilmi Azizi <root@hilmiazizi.com>"]
-packages = [{ include = "tokopaedi", from = "src" }]
 readme = "README.md"
+license = "MIT"
+packages = [{ include = "tokopaedi", from = "src" }]
+include = ["LICENSE"]
+
+homepage = "https://github.com/hilmiazizi/tokopaedi"
+repository = "https://github.com/hilmiazizi/tokopaedi"
+documentation = "https://github.com/hilmiazizi/tokopaedi"
+keywords = ["tokopedia", "scraper", "ecommerce", "product", "data", "web-scraping", "python", "data-analysis", "tokopedia-reviews"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent"
+]
+
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.8"
 curl-cffi = "^0.11.4"
 
 [build-system]

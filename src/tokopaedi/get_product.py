@@ -98,12 +98,14 @@ def parse_tokped_url(url):
     return shop_id, product_key
 
 def get_product(product_id=None, url=None, debug=False):
-    # check http on url
     assert url or product_id
     if url:
         shop_id, product_key = parse_tokped_url(url)
+        if not product_id:
+            assert shop_id or product_key, "Failed to resolve product from URL"
     if product_id:
         product_id = str(product_id)
+        shop_id, product_key = None, None
 
     headers = {
         'Host': 'gql.tokopedia.com',

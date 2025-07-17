@@ -4,6 +4,7 @@ import traceback
 from .tokopaedi_types import ProductReview
 from .custom_logging import setup_custom_logging
 from .get_fingerprint import randomize_fp
+from .get_product import get_product
 
 logger = setup_custom_logging()
 
@@ -42,8 +43,16 @@ def extract_reviews(json_data):
 
     return reviews
 
-def get_reviews(product_id, max_result=10, page=1, result_count=0, debug=False):
-    product_id = str(product_id)
+def get_reviews(product_id=None, url=None, max_result=10, page=1, result_count=0, debug=False):
+    assert product_id or url, "You must provide either 'product_id' or 'url' to fetch reviews."
+
+    if url:
+        ''' Resolve product_id from url using get_product '''
+        product_detail = get_product(url=url)
+        if product_detail:
+            product_id = product_detail.product_id
+            assert product_id, "Failed to resolve product_id from URL"
+
     headers = {
         'Host': 'gql.tokopedia.com',
         'Fingerprint-Data': randomize_fp(),
@@ -64,7 +73,7 @@ def get_reviews(product_id, max_result=10, page=1, result_count=0, debug=False):
     json_data = {
         'query': 'query productrevGetProductReviewList($productID: String!, $page: Int!, $limit: Int!, $sortBy: String,\n$filterBy: String, $opt: String) {\nproductrevGetProductReviewList(productID: $productID, page: $page, limit: $limit, sortBy: $sortBy,\nfilterBy: $filterBy, opt: $opt) {\nlist {\nfeedbackID\nvariantName\nmessage\nproductRating\nreviewCreateTime\nreviewCreateTimestamp\nisAnonymous\nisReportable\nreviewResponse {\nmessage\ncreateTime\n}\nuser {\nuserID\nfullName\nimage\nurl\nlabel\n}\nimageAttachments {\nattachmentID\nimageThumbnailUrl\nimageUrl\n}\nvideoAttachments {\nattachmentID\nvideoUrl\n}\nlikeDislike {\ntotalLike\nlikeStatus\n}\nstats {\nkey\nformatted\ncount\n}\nbadRatingReasonFmt\n}\nshop {\nshopID\nname\nurl\nimage\n}\nvariantFilter {\nisUnavailable\nticker\n}\nhasNext\n}\n}',
         'variables': {
-            'productID': product_id,
+            'productID': str(product_id),
             'page': page,
             'filterBy': '',
             'opt': '',
@@ -84,17 +93,20 @@ def get_reviews(product_id, max_result=10, page=1, result_count=0, debug=False):
         has_next = result_json.get('data', {}).get('productrevGetProductReviewList', {}).get('hasNext', False)
         current_result =  extract_reviews(result_json)
         if current_result:
-            result_count += len(current_result)
-            if result_count >= max_result:
-                return current_result
 
+            # Debug
             if debug:
                 for line in current_result:
                     review_message = line.message.replace('\n','')[0:40]
                     logger.reviews(f"{line.feedback_id} - {review_message}...")
 
+            result_count += len(current_result)
+            if result_count >= max_result:
+                return current_result
+
             next_result = get_reviews(
-                    product_id = product_id,
+                    product_id = str(product_id) if product_id else None,
+                    url = url if url else None,
                     max_result = max_result,
                     page = page+1,
                     result_count = result_count,

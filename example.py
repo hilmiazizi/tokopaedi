@@ -1,5 +1,4 @@
 from tokopaedi import search, SearchFilters, get_product, get_reviews, combine_data
-from dataclasses import dataclass, asdict
 import json
 
 filters = SearchFilters(
@@ -9,7 +8,7 @@ filters = SearchFilters(
             rt = 4.5
         )
 
-results = search("Zenbook 14 32GB", max_result=100, debug=False)
+results = search("Zenbook 14 32GB", max_result=100, debug=True)
 for result in results:
     combine_data(
         result,
