@@ -20,14 +20,17 @@ Tokopaedi is a powerful Python library designed for scraping e-commerce data fro
 ---
 
 ## Installation
+----------
+Tokopaedi is available on PyPi: [https://pypi.org/project/tokopaedi/](https://pypi.org/project/tokopaedi/)
 
 Install Tokopaedi via pip:
 
 ```bash
 pip install tokopaedi
+```
+
 
 ##  Quick Start
-
 ```python
 from tokopaedi import search, SearchFilters, get_product, get_reviews, combine_data
 from dataclasses import dataclass, asdict
@@ -53,7 +56,7 @@ with open('log.json','w') as f:
 print(json.dumps(results.json(), indent=4))
 ```
 
-
+----------
 ## 📘 API Overview
 
 ### 🔍 `search(keyword: str, max_result: int = 100, filters: Optional[SearchFilters] = None, debug: bool = False) -> SearchResults`
