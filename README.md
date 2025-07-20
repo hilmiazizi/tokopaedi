@@ -7,7 +7,7 @@
 Tokopaedi is a powerful Python library designed for scraping e-commerce data from Tokopedia, including product searches, detailed product information, and customer reviews. Ideal for developers, data analysts, and businesses looking to analyze Tokopedia's marketplace.
 
 
-![Tokopaedi Runtime](image/runtime.png)
+![Tokopaedi Runtime](https://github.com/hilmiazizi/tokopaedi/blob/main/image/runtime.png?raw=true)
 
 ## Features
 - **Product Search**: Search Tokopedia products by keyword with customizable filters (price, rating, condition, etc.).
@@ -226,9 +226,12 @@ product.enrich_reviews(max_result=50, debug=True)
 df = json_normalize(product.json())
 df[["product_id", "product_name", "price", "price_original","discount_percentage","rating","shop.name"]].head()
 ```
-![Tokopaedi Runtime](image/notebook.png)
+![Tokopaedi Runtime](https://github.com/hilmiazizi/tokopaedi/blob/main/image/notebook.png?raw=True)
 
 ## 📋 Changelog
+
+### 0.2.1
+- Fix image link on documentation for PyPi release
 
 ### 0.2.0
 - Improve price accuracy with user spoofing (mobile pricing)
