@@ -1,3 +1,4 @@
+
 # Tokopaedi - Python Library for Tokopedia E-Commerce Data Extraction
 ![PyPI](https://img.shields.io/pypi/v/tokopaedi) [![PyPI Downloads](https://static.pepy.tech/badge/tokopaedi)](https://pepy.tech/projects/tokopaedi) ![GitHub Repo stars](https://img.shields.io/github/stars/hilmiazizi/tokopaedi?style=social) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/hilmiazizi/tokopaedi/blob/main/LICENSE) ![GitHub forks](https://img.shields.io/github/forks/hilmiazizi/tokopaedi?style=social)
 
@@ -13,7 +14,7 @@ Tokopaedi is a powerful Python library designed for scraping e-commerce data fro
 - **Detailed Product Data**: Retrieve rich product details, including variants, pricing, stock, and media.
 - **Customer Reviews**: Scrape product reviews with ratings, timestamps, and more.
 - **Serializable Results**: Dataclass-based results with `.json()` for easy export to JSON or pandas DataFrames.
-- **SearchResults Container**: Iterable and serializable container for streamlined data handling.
+- **SearchResults Container**: Iterable and JSON-serializable container that supports enrich_details() and enrich_reviews() to automatically fetch product metadata and reviews for each item.
 
 
 ## Installation
@@ -107,28 +108,12 @@ Scrape customer reviews for a given product.
 - A list of `ProductReview` objects.
 - Each object supports `.json()` for serialization (e.g., for use with `pandas` or JSON export).
 
-----------
-
-### 🔗 `combine_data(search_results, products=None, reviews=None) -> SearchResults`
-
-Attach product detail and/or reviews to the search results.
-
-**Parameters:**
-
--   `search_results`: The `SearchResults` from `search()`.
-    
--   `products`: List of `ProductData` from `get_product()` (optional).
-    
--   `reviews`: List of `ProductReview` from `get_reviews()` (optional).
-    
-
 **Returns:**
 
 -   A new `SearchResults` object with `.product_detail` and `.product_reviews` fields filled in (if data was provided).
     
-
 ----------
-##  `SearchFilters` – Optional Search Filters
+###  `SearchFilters` – Optional Search Filters
 
 Use `SearchFilters` to refine your search results. All fields are optional. Pass it into the `search()` function via the `filters` argument.
 
@@ -166,12 +151,51 @@ results = search("logitech mouse", filters=filters)
 | `cod`                | `bool`   | Cash on delivery available                        | `True` / `False`                 |
 
 
----
+## Product Details & Reviews Enrichment
 
-## Example: Enrich with product details & reviews, then convert to pandas DataFrame from Jupyter Notebook
+Tokopaedi supports data enrichment to attach detailed product information and customer reviews directly to search results. This is useful when you want to go beyond basic search metadata and analyze full product details or customer feedback.
+#### Example:
+```python
+# Enrich search results
+results = search("Asus Zenbook S14 32GB", max_result=10, debug=True, filters=filters)
+results.enrich_details(debug=True)
+results.enrich_reviews(max_result=50, debug=True)
+
+# Enrich product detail with reviews
+product = get_product(url="https://www.tokopedia.com/asusrogindonesia/asus-tuf-a15-fa506ncr-ryzen-7-7435hs-rtx3050-4gb-8gb-512gb-w11-ohs-o365-15-6fhd-144hz-ips-rgb-blk-r735b1t-om-laptop-8gb-512gb-4970d?extParam=whid%3D17186756&aff_unique_id=&channel=others&chain_key=")
+product.enrich_reviews(max_result=50, debug=True)
+```
+
+Enrichment methods are available on both the `SearchResults` container and individual `ProductData` objects:
+
+### On `SearchResults`
+
+- `enrich_details(debug: bool = False) -> None`  
+  Enriches all items in the result with detailed product info.  
+  - `debug`: If `True`, logs each enrichment step.
+
+- `enrich_reviews(max_result: int = 10, debug: bool = False) -> None`  
+  Enriches all items with customer reviews (up to `max_result` per product).  
+  - `max_result`: Number of reviews to fetch for each product.  
+  - `debug`: If `True`, logs the review enrichment process.
+
+### On `ProductData`
+
+- `enrich_details(debug: bool = False) -> None`  
+  Enriches this specific product with detailed information.
+
+- `enrich_reviews(max_result: int = 10, debug: bool = False) -> None`  
+  Enriches this product with customer reviews.
+
+This design allows for flexibility: enrich a full result set at once, or enrich individual items selectively as needed.
+
+
+## Example: Scrape directly from Jupyter Notebook
+
+Tokopaedi is fully compatible with Jupyter Notebook, making it easy to explore and manipulate data interactively. You can perform searches, enrich product details and reviews, and convert results to pandas DataFrames for analysis all from a notebook environment.
 
 ```python
-from tokopaedi import search, SearchFilters, get_product, get_reviews, combine_data
+from tokopaedi import search, SearchFilters, get_product, get_reviews
 import json
 import pandas as pd
 from pandas import json_normalize
@@ -198,17 +222,38 @@ df.iloc[0].reviews
 
 # Retrieve single product by url
 product = get_product(url="https://www.tokopedia.com/asusrogindonesia/asus-tuf-a15-fa506ncr-ryzen-7-7435hs-rtx3050-4gb-8gb-512gb-w11-ohs-o365-15-6fhd-144hz-ips-rgb-blk-r735b1t-om-laptop-8gb-512gb-4970d?extParam=whid%3D17186756&aff_unique_id=&channel=others&chain_key=")
-product.enrich_details()
+product.enrich_reviews(max_result=50, debug=True)
 df = json_normalize(product.json())
 df[["product_id", "product_name", "price", "price_original","discount_percentage","rating","shop.name"]].head()
 ```
-
 ![Tokopaedi Runtime](image/notebook.png)
 
+## 📋 Changelog
+
+### 0.2.0
+- Improve price accuracy with user spoofing (mobile pricing)
+- Shop type conistency
+- Minor extractor fix
+- Replaced `ProductSearchResult` with `ProductData` for a unified model
+- Removed `combine_data` and replace it with enrichment functions
+- Added `.enrich_details(debug=False)` to `ProductData` and `SearchResults`
+- Added `.enrich_reviews(max_result=10, debug=False)` to `ProductData` and `SearchResults`
+
+### 0.1.3
+- Added `url` parameter to `get_reviews()` and `get_product()` for direct product URL support
+
+### 0.1.1
+- Improved documentation and metadata
+
+### 0.1.0
+- Initial release with:
+  - `search()` function with filters
+  - `get_product()` for detailed product info
+  - `get_reviews()` for customer reviews
 
 ## Author
 
-Tokopaedi was created by **Hilmi Azizi**. For inquiries, feedback, or collaboration, contact me at [root@hilmiazizi.com](mailto:root@hilmiazizi.com). You can also reach out via [GitHub Issues](https://github.com/hilmiazizi/tokopaedi/issues) for bug reports or feature suggestions.
+Created by [**Hilmi Azizi**](https://hilmiazizi.com). For inquiries, feedback, or collaboration, contact me at [root@hilmiazizi.com](mailto:root@hilmiazizi.com). You can also reach out via [GitHub Issues](https://github.com/hilmiazizi/tokopaedi/issues) for bug reports or feature suggestions.
 
 ## 📄 License
 
