@@ -14,5 +14,4 @@ results.enrich_reviews(max_result=50, debug=True)
 
 with open('log.json','w') as f:
     f.write(json.dumps(results.json(), indent=4))
-print(results.json())
-exit()
+print(json.dumps(results.json(), indent=4))
