@@ -2,7 +2,7 @@ from curl_cffi import requests
 import logging
 import traceback
 import json
-from .tokopaedi_types import ProductData, ProductMedia, ProductOption, ProductVariant
+from .tokopaedi_types import ProductData, ProductMedia, ProductOption, ProductVariant, TokopaediShop, shop_resolver
 from .custom_logging import setup_custom_logging
 from .get_fingerprint import randomize_fp
 
@@ -23,7 +23,7 @@ def product_details_extractor(json_data):
     product_media_raw = find_component("product_media")
     product_media_raw = product_media_raw[0].get("media", []) if product_media_raw else []
     basic_info = pdp.get("basicInfo", {})
-
+    product_url = basic_info.get("url", "")
     product_media = [
         ProductMedia(
             original=media.get("URLOriginal", ""),
@@ -58,19 +58,24 @@ def product_details_extractor(json_data):
                     price_string=child.get("priceFmt", ""),
                     discount=child.get('discPercentage', ""),
                     image_url=child.get("picture", {}).get("url", ""),
-                    stock=child.get("stock", {}).get('value', 0),
+                    stock=child.get("stock", {}).get('stock', None),
                 )
             )
 
+    pdpdSession = pdp.get('pdpSession')
+    shop_type = json.loads(pdpdSession).get('stier', {}) if pdpdSession else None
+
     return ProductData(
         product_id=basic_info.get('productID'),
+        product_sku = basic_info.get("ttsSKUID"),
         product_name=product_content.get("name", ""),
-        url=basic_info.get("url", ""),
-        product_status=basic_info.get("status", ""),
-        product_price=product_content.get("price", {}).get("value", 0),
-        product_price_text=product_content.get("price", {}).get("priceFmt", ""),
-        product_price_original=product_content.get("price", {}).get("slashPriceFmt", ""),
-        product_discount_percentage=product_content.get("price", {}).get("discPercentage", ""),
+        url=product_url,
+        main_image=basic_info.get("defaultMediaURL"),
+        status=basic_info.get("status", ""),
+        price=product_content.get("price", {}).get("value", 0),
+        price_text=product_content.get("price", {}).get("priceFmt", ""),
+        price_original=product_content.get("price", {}).get("slashPriceFmt", ""),
+        discount_percentage=product_content.get("price", {}).get("discPercentage", ""),
         weight=int(basic_info.get("weight", 0) or 0),
         weight_unit=basic_info.get("weightUnit", ""),
         product_media=product_media,
@@ -85,9 +90,13 @@ def product_details_extractor(json_data):
         sub_category=[d.get("name", "") for d in basic_info.get("category", {}).get("detail", [])],
         product_option=product_option,
         variants=variants,
-        shop_id=int(basic_info.get("shopID", 0) or 0),
-        shop_name=basic_info.get("shopName", ""),
-        shop_location=basic_info.get('shopMultilocation', {}).get('cityName', "")
+        shop=TokopaediShop(
+            shop_id=int(basic_info.get("shopID", 0) or 0),
+            name=basic_info.get("shopName", ""),
+            city=basic_info.get('shopMultilocation', {}).get('cityName', ""),
+            url='/'.join(product_url.split('/')[:-1]),
+            shop_type=shop_resolver(shop_type)
+        )
     )
 
 def parse_tokped_url(url):
@@ -99,6 +108,7 @@ def parse_tokped_url(url):
 
 def get_product(product_id=None, url=None, debug=False):
     assert url or product_id
+    user_id, fingerprint = randomize_fp()
     if url:
         shop_id, product_key = parse_tokped_url(url)
         if not product_id:
@@ -109,7 +119,8 @@ def get_product(product_id=None, url=None, debug=False):
 
     headers = {
         'Host': 'gql.tokopedia.com',
-        'Fingerprint-Data': randomize_fp(),
+        'Fingerprint-Data': fingerprint,
+        'X-Tkpd-Userid': user_id,
         'X-Tkpd-Path': '/graphql/ProductDetails/getPDPLayout',
         'X-Method': 'POST',
         'Request-Method': 'POST',

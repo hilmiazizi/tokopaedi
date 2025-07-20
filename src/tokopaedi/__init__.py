@@ -4,16 +4,7 @@ from typing import Optional
 from .search import search
 from .get_product import get_product
 from .get_reviews import get_reviews
-from .tokopaedi_types import ProductSearchResult, ProductData, ProductReview
-
-def combine_data(
-    search_result: ProductSearchResult,
-    product: Optional[ProductData] = None,
-    reviews: Optional[list[ProductReview]] = None,
-) -> ProductSearchResult:
-    search_result.product_detail = product
-    search_result.product_reviews = reviews
-    return search_result
+from .tokopaedi_types import ProductData, ProductReview
 
 @dataclass
 class SearchFilters:
