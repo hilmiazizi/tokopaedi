@@ -45,7 +45,7 @@ def extract_reviews(json_data):
 
 def get_reviews(product_id=None, url=None, max_result=10, page=1, result_count=0, debug=False):
     assert product_id or url, "You must provide either 'product_id' or 'url' to fetch reviews."
-
+    user_id, fingerprint = randomize_fp()
     if url:
         ''' Resolve product_id from url using get_product '''
         product_detail = get_product(url=url)
@@ -55,7 +55,8 @@ def get_reviews(product_id=None, url=None, max_result=10, page=1, result_count=0
 
     headers = {
         'Host': 'gql.tokopedia.com',
-        'Fingerprint-Data': randomize_fp(),
+        'Fingerprint-Data': fingerprint,
+        'X-Tkpd-Userid': user_id,
         'X-Tkpd-Path': '/graphql/ProductReview/getProductReviewReadingList',
         'X-Device': 'ios-2.318.0',
         'Request-Method': 'POST',
@@ -86,8 +87,7 @@ def get_reviews(product_id=None, url=None, max_result=10, page=1, result_count=0
         response = requests.post(
             'https://gql.tokopedia.com/graphql/ProductReview/getProductReviewReadingList',
             headers=headers,
-            json=json_data,
-            verify=False,
+            json=json_data
         )
         result_json = response.json()
         has_next = result_json.get('data', {}).get('productrevGetProductReviewList', {}).get('hasNext', False)

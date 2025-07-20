@@ -27,28 +27,23 @@ pip install tokopaedi
 
 ##  Quick Start
 ```python
-from tokopaedi import search, SearchFilters, get_product, get_reviews, combine_data
-from dataclasses import dataclass, asdict
+from tokopaedi import search, SearchFilters, get_product, get_reviews
 import json
 
 filters = SearchFilters(
             bebas_ongkir_extra = True,
             pmin = 15000000,
-            pmax = 30000000,
+            pmax = 25000000,
             rt = 4.5
         )
 
-results = search("Zenbook 14 32GB", max_result=100, debug=False)
-for result in results:
-    combine_data(
-        result,
-        get_product(product_id=result.product_id, debug=True),
-        get_reviews(product_id=result.product_id, max_result=20, debug=True)
-    )
+results = search("Asus Zenbook S14 32GB", max_result=10, debug=True, filters=filters)
+results.enrich_details(debug=True)
+results.enrich_reviews(max_result=50, debug=True)
 
 with open('log.json','w') as f:
     f.write(json.dumps(results.json(), indent=4))
-print(json.dumps(results.json(), indent=4))
+print(results.json())
 ```
 
 ## 📘 API Overview
@@ -182,33 +177,30 @@ import pandas as pd
 from pandas import json_normalize
 
 filters = SearchFilters(
-    bebas_ongkir_extra=True,
-    pmax=100000,
-    rt=4.5
-)
+            bebas_ongkir_extra = True,
+            pmin = 15000000,
+            pmax = 25000000,
+            rt = 4.5
+        )
 
-# Fetch search results
-results = search("logitech g304", max_result=10, debug=False)
+results = search("Asus Zenbook S14 32GB", max_result=10, debug=False, filters=filters)
 
 # Enrich each result with product details and reviews
-for result in results:
-    combine_data(
-        result,
-        get_product(product_id=result.product_id, debug=False),
-        get_reviews(product_id=result.product_id, max_result=1, debug=False)
-    )
+results.enrich_details(debug=False)
+results.enrich_reviews(max_result=50, debug=False)
 
 # Convert to DataFrame and preview important fields
 df = json_normalize(results.json())
-print(df[[
-    "product_id",
-    "category",
-    "real_price",
-    "original_price",
-    "product_detail.product_name",
-    "rating",
-    "shop.name"
-]].head())
+df[["product_id", "product_name", "price", "price_original","discount_percentage","rating","shop.name"]].head()
+
+# Reviews
+df.iloc[0].reviews
+
+# Retrieve single product by url
+product = get_product(url="https://www.tokopedia.com/asusrogindonesia/asus-tuf-a15-fa506ncr-ryzen-7-7435hs-rtx3050-4gb-8gb-512gb-w11-ohs-o365-15-6fhd-144hz-ips-rgb-blk-r735b1t-om-laptop-8gb-512gb-4970d?extParam=whid%3D17186756&aff_unique_id=&channel=others&chain_key=")
+product.enrich_details()
+df = json_normalize(product.json())
+df[["product_id", "product_name", "price", "price_original","discount_percentage","rating","shop.name"]].head()
 ```
 
 ![Tokopaedi Runtime](image/notebook.png)
