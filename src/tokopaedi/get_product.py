@@ -62,6 +62,16 @@ def product_details_extractor(json_data):
                 )
             )
 
+    description = None
+    description_element = find_component('product_detail')
+    if description_element is not None and isinstance(description_element, list) and len(description_element) > 0:
+        content = description_element[0].get('content')
+        if content is not None and isinstance(content, list):
+            for line in content:
+                if isinstance(line, dict) and line.get('key') == 'deskripsi':
+                    description = line.get('subtitle', '')
+                    break
+
     pdpdSession = pdp.get('pdpSession')
     shop_type = json.loads(pdpdSession).get('stier', {}) if pdpdSession else None
 
@@ -72,6 +82,7 @@ def product_details_extractor(json_data):
         url=product_url,
         main_image=basic_info.get("defaultMediaURL"),
         status=basic_info.get("status", ""),
+        description=description,
         price=product_content.get("price", {}).get("value", 0),
         price_text=product_content.get("price", {}).get("priceFmt", ""),
         price_original=product_content.get("price", {}).get("slashPriceFmt", ""),

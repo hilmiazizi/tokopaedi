@@ -230,6 +230,9 @@ df[["product_id", "product_name", "price", "price_original","discount_percentage
 
 ## 📋 Changelog
 
+### 0.2.2
+- Add `ProductData.description` to extract description
+
 ### 0.2.1
 - Fix image link on documentation for PyPi release
 

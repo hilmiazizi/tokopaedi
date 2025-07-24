@@ -79,6 +79,7 @@ class ProductData:
     url: str
     main_image: Optional[str] = None
     status: Optional[str] = None
+    description: Optional[str] = None
     price: Optional[int] = None
     price_text: Optional[str] = None
     price_original: Optional[str] = None
