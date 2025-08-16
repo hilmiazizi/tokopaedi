@@ -230,6 +230,9 @@ df[["product_id", "product_name", "price", "price_original","discount_percentage
 
 ## 📋 Changelog
 
+### 0.2.3
+- Update search query
+
 ### 0.2.2
 - Add `ProductData.description` to extract description
 

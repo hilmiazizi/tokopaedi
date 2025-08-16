@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tokopaedi"
-version = "0.2.2"
+version = "0.2.3"
 description = "A Python scraper for Tokopedia that supports filtered product search, detailed product information, and customer reviews with accurate mobile pricing and Jupyter Notebook compatibility."
 authors = ["Hilmi Azizi <root@hilmiazizi.com>"]
 readme = "README.md"
