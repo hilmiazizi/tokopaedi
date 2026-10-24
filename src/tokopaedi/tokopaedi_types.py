@@ -3,12 +3,16 @@ from typing import List, Optional, Iterator
 
 def shop_resolver(shop_tier):
     ''' Find shop tier by id and badge image '''
+    if shop_tier is None:
+        return None
     try:
         shop_tier = int(shop_tier)
     except:
-        if 'PM%20Pro%20Small.png' in shop_tier:
+        if not isinstance(shop_tier, str):
+            return None
+        if 'PM%20Pro%20Small.png' in shop_tier or 'Power%20Merchant%20Pro.png' in shop_tier:
             shop_tier = 3
-        elif 'official_store_badge' in shop_tier:
+        elif 'official_store_badge' in shop_tier or 'official_store/badge_os.png' in shop_tier:
             shop_tier = 2
         else:
             shop_tier = 1

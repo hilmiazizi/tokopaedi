@@ -1,4 +1,4 @@
-__version__ = '0.1.0'
+__version__ = '0.2.4'
 from dataclasses import dataclass
 from typing import Optional
 from .search import search

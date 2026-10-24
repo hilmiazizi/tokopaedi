@@ -1,16 +1,18 @@
 from curl_cffi import requests
-import logging
 import traceback
 import json
 from .tokopaedi_types import ProductData, ProductMedia, ProductOption, ProductVariant, TokopaediShop, shop_resolver
 from .custom_logging import setup_custom_logging
 from .get_fingerprint import randomize_fp
+import random
 
 logger = setup_custom_logging()
 
 def product_details_extractor(json_data):
-    pdp = json_data.get("data", {}).get("pdpGetLayout", {})
-    components = pdp.get("components", [])
+    data = json_data.get("data", {}) or {}
+    pdp = data.get("pdpMainInfo") or data.get("pdpGetLayout") or {}
+    components = pdp.get("components") or []
+    inner = pdp.get("data") or {}
 
     def find_component(name):
         for c in components:
@@ -22,7 +24,7 @@ def product_details_extractor(json_data):
     product_content = product_content[0] if product_content else {}
     product_media_raw = find_component("product_media")
     product_media_raw = product_media_raw[0].get("media", []) if product_media_raw else []
-    basic_info = pdp.get("basicInfo", {})
+    basic_info = inner.get("basicInfo") or pdp.get("basicInfo") or {}
     product_url = basic_info.get("url", "")
     product_media = [
         ProductMedia(
@@ -65,15 +67,27 @@ def product_details_extractor(json_data):
     description = None
     description_element = find_component('product_detail')
     if description_element is not None and isinstance(description_element, list) and len(description_element) > 0:
-        content = description_element[0].get('content')
-        if content is not None and isinstance(content, list):
-            for line in content:
-                if isinstance(line, dict) and line.get('key') == 'deskripsi':
-                    description = line.get('subtitle', '')
-                    break
+        detail = description_element[0] or {}
+        product_detail_description = detail.get('productDetailDescription') or {}
+        if isinstance(product_detail_description, dict):
+            description = product_detail_description.get('content')
+        if not description:
+            content = detail.get('content')
+            if content is not None and isinstance(content, list):
+                for line in content:
+                    if isinstance(line, dict) and line.get('key') == 'deskripsi':
+                        description = line.get('subtitle', '')
+                        break
 
     pdpdSession = pdp.get('pdpSession')
     shop_type = json.loads(pdpdSession).get('stier', {}) if pdpdSession else None
+    if shop_type is None:
+        if product_content.get('isOS'):
+            shop_type = 2
+        elif product_content.get('isPowerMerchant'):
+            shop_type = 3
+        else:
+            shop_type = 1
 
     return ProductData(
         product_id=basic_info.get('productID'),
@@ -130,63 +144,58 @@ def get_product(product_id=None, url=None, debug=False):
 
     headers = {
         'Host': 'gql.tokopedia.com',
-        'Fingerprint-Data': fingerprint,
-        'X-Tkpd-Userid': user_id,
-        'X-Tkpd-Path': '/graphql/ProductDetails/getPDPLayout',
+        'Accept': 'application/json',
+        'Os_version': '26.2.1',
         'X-Method': 'POST',
-        'Request-Method': 'POST',
-        'X-Tkpd-Akamai': 'pdpGetLayout',
-        'X-Device': 'ios-2.318.0',
+        'Bd-Device-Id': str(random.randint(10**18, 10**19 - 1)),
+        'X-Tkpd-Akamai': 'pdpMainInfoP1',
+        'X-Tkpd-Userid': user_id,
+        'X-Price-Center': 'true',
+        'Content-Type': 'application/json; encoding=utf-8',
         'Accept-Language': 'id;q=1.0, en;q=0.9',
         'User-Agent': 'Tokopedia/2.318.0 (com.tokopedia.Tokopedia; build:202505022018; iOS 18.5.0) Alamofire/2.318.0',
-        'Content-Type': 'application/json; encoding=utf-8',
-        'X-App-Version': '2.318.0',
-        'Accept': 'application/json',
+        'Fingerprint-Data': fingerprint,
+        'X-App-Version': '2.371.0',
+        'X-Tkpd-Path': '/graphql/ProductDetails/getPDPMainInfoP1',
+        'X-Device': 'ios-2.371.0',
+        'Request-Method': 'POST',
         'X-Theme': 'default',
         'X-Dark-Mode': 'false',
-        'X-Price-Center': 'true',
     }
 
     json_data = {
         'variables': {
-            'apiVersion': 1,
+            'productID': product_id if product_id else '',
+            'layoutID': '',
+            'queryParam': '',
+            'productKey': product_key if product_key  else '',
+            'shopDomain': shop_id if shop_id else '',
+            'source': 'P1',
             'userLocation': {
                 'addressID': '',
                 'addressName': '',
-                'receiverName': '',
-                'postalCode': '',
-                'districtID': '',
-                'cityID': '',
                 'latlon': '',
+                'postalCode': '',
+                'cityID': '',
+                'receiverName': '',
+                'districtID': '',
             },
-            'tokonow': {
-                'shopID': '0',
-                'warehouses': [],
-                'whID': '0',
-                'serviceType': 'ooc',
-            },
-            'extParam': '',
-            'productId': product_id if product_id else "",
-            'shopDomain': shop_id if url else "",
-            'productKey': product_key if url else "",
-            'whID': '',
-            'layoutID': '',
         },
-        'query': 'query PDP_getPDPLayout($productId: String, $shopDomain: String, $productKey: String, $apiVersion: Float, $whID: String, $layoutID: String, $userLocation: pdpUserLocation, $extParam: String, $tokonow: pdpTokoNow) {\npdpGetLayout(productID: $productId, shopDomain: $shopDomain, productKey: $productKey, apiVersion: $apiVersion, whID: $whID, layoutID: $layoutID, userLocation: $userLocation, extParam: $extParam, tokonow: $tokonow) {\nrequestID\nname\npdpSession\nbasicInfo {\nproductID\ninitialVariantOptionID\ncategory {\nid\nname\ntitle\nbreadcrumbURL\nisAdult\nisKyc\ndetail {\nid\nname\nbreadcrumbURL\n}\nttsID\nttsDetail {\nid\nname\nbreadcrumbURL\n}\n}\nmenu {\nid\nname\nurl\n}\nshopID\nshopName\nalias\nminOrder\nmaxOrder\nurl\ncatalogID\nneedPrescription\nweight\nweightUnit\nstatus\ntxStats {\ntransactionReject\ntransactionSuccess\ncountSold\nitemSoldFmt\n}\nstats {\nrating\ncountTalk\ncountView\ncountReview\n}\ndefaultOngkirEstimation\nisTokoNow\ntotalStockFmt\nisGiftable\ndefaultMediaURL\nshopMultilocation {\ncityName\n}\nisBlacklisted\nblacklistMessage {\ntitle\ndescription\nbutton\n}\nweightWording\nttsPID\nttsSKUID\nttsShopID\n}\nadditionalData {\nfomoSocialProofs {\nname\ntext\nicons\ntypeIcon\nbackgroundColor\nposition\n}\n}\ncomponents {\nname\ntype\nkind\ndata {\n... on pdpDataComponentSocialProofV2 {\nsocialProofContent {\nsocialProofType\nsocialProofID\ntitle\nsubtitle\nicon\napplink {\nappLink\n}\nbgColor\nchevronColor\nshowChevron\nhasSeparator\n}\n}\n... on pdpDataProductMedia {\nmedia {\ntype\nURLOriginal\nURLThumbnail\ndescription\nvideoURLIOS\nisAutoplay\nindex\nvariantOptionID\nURLMaxRes\n}\nrecommendation{\nlightIcon\ndarkIcon\niconText\nbottomsheetTitle\nrecommendation\n}\nvideos {\nsource\nurl\n}\ncontainerType\nliveIndicator {\nisLive\nchannelID\nmediaURL\napplink\n}\nshowJumpToVideo\n}\n... on pdpDataProductContent {\nname\nprice {\nvalue\ncurrency\nlastUpdateUnix\npriceFmt\nslashPriceFmt\ndiscPercentage\ncurrencyFmt\nvalueFmt\n}\ncampaign {\ncampaignID\ncampaignType\ncampaignTypeName\npercentageAmount\noriginalPrice\ndiscountedPrice\noriginalStock\nstock\nstockSoldPercentage\nendDateUnix\nisActive\nhideGimmick\nisUsingOvo\ncampaignIdentifier\nbackground\npaymentInfoWording\nproductID\ncampaignLogo\nshowStockBar\n}\nthematicCampaign {\nproductID\ncampaignName\nbackground\nicon\ncampaignLogo\nsuperGraphicURL\n}\nstock {\nuseStock\nvalue\nstockWording\n}\nvariant {\nisVariant\n}\nwholesale {\nminQty\nprice {\nvalue\ncurrency\nlastUpdateUnix\n}\n}\nisFreeOngkir {\nisActive\nimageURL\n}\npreorder {\nduration\ntimeUnit\nisActive\npreorderInDays\n}\nisCashback {\npercentage\n}\nisTradeIn\nisOS\nisPowerMerchant\nisWishlist\nisCOD\nparentName\nisShowPrice\nlabelIcons {\niconURL\nlabel\n}\n}\n... on pdpDataProductInfo {\nrow\ncontent {\ntitle\nsubtitle\napplink\n}\n}\n... on pdpDataInfo {\ntitle\napplink\nisApplink\nicon\nlightIcon\ndarkIcon\ncontent {\nicon\ntext\n}\nseparator\n}\n... on pdpDataProductVariant {\nparentID\ndefaultChild\nsizeChart\nmaxFinalPrice\ncomponentType\nlandingSubText\nsocialProof {\nbgColor\ncontents {\nname\ncontent\niconURL\n}\n}\nvariants {\nproductVariantID\nvariantID\nname\nidentifier\noption {\nproductVariantOptionID\nvariantUnitValueID\nvalue\nhex\npicture {\nurl\nurl100\n}\n}\n}\nchildren {\nproductID\nprice\npriceFmt\nslashPriceFmt\ndiscPercentage\nsku\noptionID\nproductName\nproductURL\npicture {\nurl\nurl100\n}\nstock {\nstock\nisBuyable\nstockWording\nstockWordingHTML\nminimumOrder\nmaximumOrder\nstockFmt\nstockCopy\n}\nisCOD\nisWishlist\ncampaignInfo {\ncampaignID\ncampaignType\ncampaignTypeName\ndiscountPercentage\noriginalPrice\ndiscountPrice\nstock\nstockSoldPercentage\nendDateUnix\nappLinks\nisActive\nhideGimmick\nisUsingOvo\nminOrder\ncampaignIdentifier\nbackground\npaymentInfoWording\ncampaignLogo\nshowStockBar\n}\nthematicCampaign {\ncampaignName\nicon\nbackground\nproductID\ncampaignLogo\nsuperGraphicURL\n}\nsubText\npromo {\nvalue\niconURL\nproductID\npromoPriceFmt\nsubtitle\napplink\ncolor\nbackground\npromoType\nsuperGraphicURL\npriceAdditionalFmt\nseparatorColor\nbottomsheetParam\npromoCodes {\npromoID\npromoCode\npromoCodeType\n}\n}\ncurrencyFmt\nvaluePriceFmt\ncomponentPriceType\nisTopSold\nlabelIcons {\niconURL\nlabel\n}\nttsPID\nttsSKUID\n}\n}\n... on pdpDataCustomInfo {\nicon\ntitle\nisApplink\napplink\nseparator\ndescription\nlabel {\nvalue\ncolor\n}\nlightIcon\ndarkIcon\n}\n... on pdpDataComponentReviewV2 {\nmostHelpfulReviewParam {\nlimit\n}\n}\n... on pdpDataProductDetail {\ntitle\ncontent {\ntype\nkey\nextParam\naction\ntitle\nsubtitle\napplink\nshowAtFront\nshowAtBottomsheet\ninfoLink\nicon\n}\ncatalogBottomsheet {\nactionTitle\nbottomSheetTitle\nparam\n}\nbottomsheet {\nactionTitle\nbottomSheetTitle\nparam\n}\n}\n... on pdpDataOneLiner {\nproductID\noneLinerContent\nlinkText\napplink\nseparator\nisVisible\ncolor\nicon\neduLink {\nappLink\n}\n}\n... on pdpDataCategoryCarousel {\nlinkText\ntitleCarousel\napplink\nlist {\ncategoryID\nicon\ntitle\nisApplink\napplink\n}\n}\n... on pdpDataBundleComponentInfo {\ntitle\nwidgetType\nproductID\nwhID\n}\n... on pdpDataDynamicOneLiner {\nname\napplink\nseparator\nicon\nstatus\nchevronPos\ntext\nbgColor\nchevronColor\npadding {\nt\nb\n}\nimageSize {\nw\nh\n}\n}\n... on pdpDataComponentDynamicOneLinerVariant {\nname\napplink\nseparator\nicon\nstatus\nchevronPos\ntext\nbgColor\nchevronColor\npadding {\nt\nb\n}\nimageSize {\nw\nh\n}\n}\n... on pdpDataCustomInfoTitle {\ntitle\nstatus\ncomponentName\n}\n... on pdpDataProductDetailMediaComponent {\ntitle\ndescription\ncontentMedia {\nurl\nratio\ntype\n}\nshow\nctaText\n}\n... on pdpDataOnGoingCampaign {\ncampaign {\ncampaignID\ncampaignType\ncampaignTypeName\npercentageAmount\noriginalPrice\ndiscountedPrice\noriginalStock\nstock\nstockSoldPercentage\nendDateUnix\nisActive\nhideGimmick\nisUsingOvo\ncampaignIdentifier\nbackground\npaymentInfoWording\nproductID\ncampaignLogo\nshowStockBar\n}\nthematicCampaign {\nproductID\ncampaignName\nbackground\nicon\ncampaignLogo\nsuperGraphicURL\n}\n}\n... on pdpDataProductListComponent {\nthematicID\nqueryParam\n}\n... on pdpDataComponentPromoPrice {\nprice {\nvalue\ncurrency\nlastUpdateUnix\npriceFmt\nslashPriceFmt\ndiscPercentage\ncurrencyFmt\nvalueFmt\n}\npromo {\nvalue\niconURL\nproductID\npromoPriceFmt\nsubtitle\napplink\ncolor\nbackground\npromoType\nsuperGraphicURL\npriceAdditionalFmt\nseparatorColor\nbottomsheetParam\npromoCodes {\npromoID\npromoCode\npromoCodeType\n}\n}\ncomponentPriceType\n}\n... on pdpDataComponentSDUIDivKit {\ntemplate\n}\n... on pdpDataComponentShipmentV4 {\ndata {\nproductID\nwarehouse_info {\nwarehouse_id\nis_fulfillment\ndistrict_id\npostal_code\ngeolocation\ncity_name\nttsWarehouseID\n}\nuseBOVoucher\nisCOD\nmetadata\n}\n}\n... on pdpDataComponentShipmentV5 {\ndata {\nproductID\nwarehouse_info {\nwarehouse_id\nis_fulfillment\ndistrict_id\npostal_code\ngeolocation\ncity_name\nttsWarehouseID\n}\nuseBOVoucher\nisCOD\nmetadata\n}\n}\n...on pdpDataAffordabilityGroupLabel {\naffordabilityData{\nproductID\nproductVouchers {\nidentifier\ntype\ntext\nbackgroundColor\n}\nshowChevron\nchevronColor\nappliedVoucherTypeIDs\n}\n}\n}\n}\n}\n}',
+        'query': 'query pdpMainInfo($productID: String, $shopDomain: String, $productKey: String, $layoutID: String, $queryParam: String, $source: String, $userLocation: pdpUserLocation) {\n  pdpMainInfo(productID: $productID, shopDomain: $shopDomain, productKey: $productKey, layoutID: $layoutID, queryParam: $queryParam, source: $source, userLocation: $userLocation) {\n    requestID\n    extraPayload\n    data {\n      layoutName\n      basicInfo {\n        ttsPID\n        ttsSKUID\n        ttsShopID\n        shopMultilocation {\n          cityName\n        }\n        isGiftable\n        isTokoNow\n        shopName\n        productID\n        shopID\n        minOrder\n        maxOrder\n        weight\n        weightUnit\n        status\n        url\n        sku\n        needPrescription\n        catalogID\n        isLeasing\n        isBlacklisted\n        totalStockFmt\n        defaultMediaURL\n        menu {\n          id\n          name\n          url\n        }\n        category {\n          id\n          ttsID\n          name\n          title\n          breadcrumbURL\n          isAdult\n          isKyc\n          lastUpdateCategory\n          detail {\n            id\n            name\n            breadcrumbURL\n            isAdult\n          }\n          ttsDetail {\n            id\n            name\n            breadcrumbURL\n            isAdult\n          }\n        }\n        blacklistMessage {\n          title\n          description\n          button\n          buttonArea\n          buttonName\n          url\n          imageURL\n          supportingImage {\n            url\n            width\n            height\n          }\n        }\n        txStats {\n          transactionSuccess\n          transactionReject\n          countSold\n          paymentVerified\n          itemSoldFmt\n        }\n        stats {\n          countReview\n          countTalk\n          rating\n        }\n        weightWording\n      }\n      fomoSocialProofs {\n        name\n        icons\n        text\n        position\n        typeIcon\n        backgroundColor\n      }\n    }\n    components {\n      name\n      type\n      data {\n        ... on pdpDataProductMedia {\n            media {\n              type\n              URLOriginal\n              URLThumbnail\n              description\n              videoURLIOS\n              isAutoplay\n              index\n              variantOptionID\n              URLMaxRes\n            }\n            recommendation {\n              lightIcon\n              darkIcon\n              iconText\n              bottomsheetTitle\n              recommendation\n            }\n            videos {\n              source\n              url\n            }\n            containerType\n            liveIndicator {\n              isLive\n              channelID\n              mediaURL\n              applink\n            }\n            showJumpToVideo\n        }\n        ... on pdpDataOnGoingCampaign {\n          campaign {\n            campaignID\n            campaignType\n            campaignTypeName\n            campaignLogo\n            percentageAmount\n            originalPrice\n            discountedPrice\n            stock\n            stockSoldPercentage\n            threshold\n            startDate\n            endDate\n            endDateUnix\n            appLinks\n            isAppsOnly\n            isActive\n            hideGimmick\n            isCheckImei\n            isUsingOvo\n            background\n            campaignIdentifier\n            paymentInfoWording\n            showStockBar\n          }\n          thematicCampaign {\n            campaignName\n            icon\n            background\n            additionalInfo\n            productID\n            campaignLogo\n            applink\n            superGraphicURL\n          }\n        }\n        ... on pdpDataProductContent {\n            name\n            price {\n              value\n              currency\n              lastUpdateUnix\n              priceFmt\n              slashPriceFmt\n              discPercentage\n              currencyFmt\n              valueFmt\n            }\n            campaign {\n              campaignID\n              campaignType\n              campaignTypeName\n              percentageAmount\n              originalPrice\n              discountedPrice\n              originalStock\n              stock\n              stockSoldPercentage\n              endDateUnix\n              isActive\n              hideGimmick\n              isUsingOvo\n              campaignIdentifier\n              background\n              paymentInfoWording\n              productID\n              campaignLogo\n              showStockBar\n            }\n            thematicCampaign {\n              productID\n              campaignName\n              background\n              icon\n              campaignLogo\n              superGraphicURL\n            }\n            stock {\n              useStock\n              value\n              stockWording\n            }\n            variant {\n              isVariant\n            }\n            isFreeOngkir {\n              isActive\n              imageURL\n            }\n            preorder {\n              duration\n              isActive\n              preorderInDays\n            }\n            isOS\n            isPowerMerchant\n            isWishlist\n            isCOD\n            parentName\n            labelIcons {\n              iconURL\n              label\n            }\n        }\n        ... on pdpDataProductDetail {\n          title\n          content {\n            status\n            key\n            type\n            title\n            subtitle\n            applink\n            showAtFront\n            isAnnotation\n            showAtBottomsheet\n          }\n          productDetailDescription {\n            title\n            content\n          }\n          bottomsheet {\n            actionTitle\n            bottomSheetTitle\n            param\n          }\n        }\n        ... on pdpDataSocialProof {\n          row\n          content {\n            icon\n            title\n            subtitle\n            applink\n          }\n        }\n        ... on pdpDataProductVariant {\n          errorCode\n          parentID\n          defaultChild\n          sizeChart\n          maxFinalPrice\n          landingSubText\n          variants {\n            productVariantID\n            variantID\n            name\n            identifier\n            option {\n              productVariantOptionID\n              variantUnitValueID\n              value\n              hex\n              picture {\n                url\n                url100\n                url200\n              }\n            }\n          }\n          showQtyEditor\n          children {\n            productID\n            price\n            priceFmt\n            slashPriceFmt\n            discPercentage\n            sku\n            optionID\n            productName\n            productURL\n            picture {\n              url\n              url100\n              url200\n            }\n            stock {\n              stock\n              isBuyable\n              stockWording\n              stockWordingHTML\n              minimumOrder\n              maximumOrder\n              stockFmt\n              stockCopy\n              trackerFmt\n            }\n            isCOD\n            isWishlist\n            campaignInfo {\n              campaignID\n              campaignType\n              campaignTypeName\n              discountPercentage\n              originalPrice\n              discountPrice\n              stock\n              stockSoldPercentage\n              endDateUnix\n              appLinks\n              isActive\n              hideGimmick\n              isUsingOvo\n              minOrder\n              campaignIdentifier\n              background\n              paymentInfoWording\n              campaignLogo\n              showStockBar\n            }\n            thematicCampaign {\n              campaignName\n              icon\n              background\n              productID\n              campaignLogo\n              superGraphicURL\n            }\n            subText\n            qtyLabel\n            promo {\n              value\n              iconURL\n              productID\n              promoPriceFmt\n              subtitle\n              applink\n              color\n              background\n              promoType\n              superGraphicURL\n              priceAdditionalFmt\n              separatorColor\n              bottomsheetParam\n              vbsProductVouchers {\n                identifier\n                type\n                text\n                backgroundColor\n                icon\n                borderColor\n                trailingIcon\n              }\n              promoPriceColor\n              promoPriceIcon\n              promoCodes {\n                promoID\n                promoCode\n                promoCodeType\n              }\n              claimContext\n              benefitParam{\n                benefitBreakdowns{\n                  type\n                  amount\n                }\n                promoMetadata\n                promoLabel\n              }\n              identifier\n              slashPriceColor\n              discPercentageColor\n              discPercentageBgColor\n              discPercentageBorderColor\n              discPercentageTransparency\n              backgroundGradientDirection\n              rightSections {\n                contents {\n                  type\n                  value\n                  color\n                  format\n                  gradientDirection\n                  fontType\n                  margin\n                  imageHeight\n                  colorTransparency\n                }\n              }\n              hideCampaignBanner\n              bigSaleName\n            }\n            currencyFmt\n            valuePriceFmt\n            componentPriceType\n            isTopSold\n            labelIcons {\n              iconURL\n              label\n            }\n            ttsPID\n            ttsSKUID\n            qtyLabel\n          }\n          componentType\n          borderColor\n          isGrouped\n          socialProof {\n            bgColor\n            bgGradient\n            contents {\n              name\n              content\n              iconURL\n            }\n          }\n        }\n        ... on pdpDataOneLiner {\n          productID\n          oneLinerContent\n          linkText\n          color\n          applink\n          separator\n          icon\n          isVisible\n          eduLink {\n            appLink\n          }\n        }\n        ... on pdpDataDynamicOneLiner {\n          name\n          text\n          title\n          applink\n          separator\n          icon\n          status\n          chevronPos\n          bgColor\n          chevronColor\n          bgGradient\n          borderColor\n          padding {\n            t\n            b\n          }\n          imageSize {\n            w\n            h\n          }\n        }\n        ... on pdpDataComponentDynamicOneLinerVariant {\n          name\n          text\n          title\n          applink\n          separator\n          icon\n          status\n          chevronPos\n          chevronColor\n          bgGradient\n          borderColor\n          padding {\n            t\n            b\n          }\n          imageSize {\n            w\n            h\n          }\n          bgColor\n        }\n        ... on pdpDataProductDetailMediaComponent {\n          title\n          description\n          contentMedia {\n            url\n            ratio\n          }\n          show\n          ctaText\n        }\n        ... on pdpDataProductListComponent {\n          queryParam\n          thematicID\n        }\n        ... on pdpDataComponentPromoPrice {\n          price {\n            value\n            currency\n            lastUpdateUnix\n            priceFmt\n            slashPriceFmt\n            discPercentage\n            currencyFmt\n            valueFmt\n          }\n          promo {\n            value\n            iconURL\n            productID\n            promoPriceFmt\n            subtitle\n            applink\n            color\n            background\n            promoType\n            superGraphicURL\n            priceAdditionalFmt\n            separatorColor\n            bottomsheetParam\n            promoPriceColor\n            promoPriceIcon\n            promoCodes {\n              promoID\n              promoCode\n              promoCodeType\n            }\n            claimContext\n            benefitParam{\n              benefitBreakdowns{\n                type\n                amount\n              }\n              promoMetadata\n              promoLabel\n            }\n            identifier\n            slashPriceColor\n            discPercentageColor\n            discPercentageBgColor\n            discPercentageBorderColor\n            discPercentageTransparency\n            backgroundGradientDirection\n            rightSections {\n              contents {\n                type\n                value\n                color\n                format\n                gradientDirection\n                fontType\n                margin\n                imageHeight\n                colorTransparency\n              }\n            }\n            hideCampaignBanner\n            bigSaleName\n          }\n          componentPriceType\n        }\n        ... on pdpDataComponentSocialProofV2 {\n          socialProofContent {\n            socialProofType\n            socialProofID\n            title\n            titleEn\n            subtitle\n            icon\n            hasSeparator\n            applink {\n              appLink\n            }\n            bgColor\n            showChevron\n            chevronColor\n            btmDCode\n          }\n        }\n        ... on pdpDataComponentShipmentV4 {\n          data {\n            productID\n            warehouse_info {\n              warehouse_id\n              is_fulfillment\n              district_id\n              postal_code\n              geolocation\n              city_name\n              ttsWarehouseID\n            }\n            useBOVoucher\n            isCOD\n            metadata\n          }\n        }\n        ... on pdpDataComponentSDUIDivKit {\n          template\n        }\n      }\n    }\n  }\n}',
     }
-
     try:
         response = requests.post(
-            'https://gql.tokopedia.com/graphql/ProductDetails/getPDPLayout',
+            'https://gql.tokopedia.com/graphql/ProductDetails/getPDPMainInfoP1',
             headers=headers,
             json=json_data,
-            verify=False,
+            timeout=20,
+            impersonate='chrome',
         )
         result_json = response.json()
         product_data = product_details_extractor(result_json)
         if debug:
             logger.detail(f"{product_data.product_id} - {product_data.product_name[0:40]}...")
         return product_data
-    except Exception as e:
+    except Exception:
         print(traceback.format_exc())
-        exit()
+        return None

@@ -230,6 +230,11 @@ df[["product_id", "product_name", "price", "price_original","discount_percentage
 
 ## 📋 Changelog
 
+### 0.2.4
+- Switch product detail query to `getPDPMainInfoP1`
+- Fix reviews request against `gql.tokopedia.com/graphql`
+- Update shop badge matching for the new Official Store and Power Merchant Pro PNGs
+
 ### 0.2.3
 - Update search query
 

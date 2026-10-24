@@ -55,20 +55,14 @@ def get_reviews(product_id=None, url=None, max_result=10, page=1, result_count=0
 
     headers = {
         'Host': 'gql.tokopedia.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Content-Type': 'application/json',
+        'Origin': 'https://www.tokopedia.com',
+        'Referer': 'https://www.tokopedia.com/',
         'Fingerprint-Data': fingerprint,
         'X-Tkpd-Userid': user_id,
-        'X-Tkpd-Path': '/graphql/ProductReview/getProductReviewReadingList',
-        'X-Device': 'ios-2.318.0',
-        'Request-Method': 'POST',
-        'X-Method': 'POST',
-        'Accept-Language': 'id;q=1.0, en;q=0.9',
-        'User-Agent': 'Tokopedia/2.318.0 (com.tokopedia.Tokopedia; build:202505022018; iOS 18.5.0) Alamofire/2.318.0',
-        'Content-Type': 'application/json; encoding=utf-8',
-        'X-App-Version': '2.318.0',
-        'Accept': 'application/json',
-        'X-Dark-Mode': 'true',
-        'X-Theme': 'default',
-        'X-Price-Center': 'true',
     }
 
     json_data = {
@@ -85,9 +79,10 @@ def get_reviews(product_id=None, url=None, max_result=10, page=1, result_count=0
 
     try:
         response = requests.post(
-            'https://gql.tokopedia.com/graphql/ProductReview/getProductReviewReadingList',
+            'https://gql.tokopedia.com/graphql',
             headers=headers,
-            json=json_data
+            json=json_data,
+            impersonate='chrome',
         )
         result_json = response.json()
         has_next = result_json.get('data', {}).get('productrevGetProductReviewList', {}).get('hasNext', False)
